@@ -1,5 +1,8 @@
 #!/bin/bash
 
+if [[ "$*" =~ --debug ]]; then
+    set -x
+fi
 set -e
 set -o pipefail
 
