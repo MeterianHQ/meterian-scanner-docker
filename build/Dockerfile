@@ -63,7 +63,8 @@ RUN apt-get update \
 
   
 ## Python install
-RUN apt-get install -qy python-pip \
+RUN apt-get update \
+  && apt-get install -qy python-pip \
   && pip -V \
   && pip install pipenv \
   && pipenv --version \
