@@ -45,46 +45,42 @@ else
     HOST_UID=`id -u`
     HOST_GID=`id -g`
 
-    CONTAINER_HOME_DIR=/home/meterian
+    CONTAINER_HOME_DIR='/home/meterian'
+    VOLUME_BIND_SOURCES=''"$HOME"'/.cache '"$HOME"'/.local '"$HOME"'/.m2 '"$HOME"'/.dotnet '"$HOME"'/.nuget '"$HOME"'/.gradle '"$HOME"'/.sbt '"$HOME"'/.ivy2'
+    VOLUME_BIND_DESTINATIONS=''"$CONTAINER_HOME_DIR"'/.cache '"$CONTAINER_HOME_DIR"'/.local '"$CONTAINER_HOME_DIR"'/.m2 '"$CONTAINER_HOME_DIR"'/.dotnet '"$CONTAINER_HOME_DIR"'/.nuget '"$CONTAINER_HOME_DIR"'/.gradle '"$CONTAINER_HOME_DIR"'/.sbt '"$CONTAINER_HOME_DIR"'/.ivy2'
 
-    VOLUME_BINDS=(
-        "$HOME/.cache::$CONTAINER_HOME_DIR/.cache"
-        "$HOME/.local::$CONTAINER_HOME_DIR/.local"
-    # maven specific mappings
-        "$HOME/.m2::$CONTAINER_HOME_DIR/.m2"
-    # dotnet specific mappings
-        "$HOME/.dotnet::$CONTAINER_HOME_DIR/.dotnet"
-        "$HOME/.nuget::$CONTAINER_HOME_DIR/.nuget"
-    # gradle specific mappings
-        "$HOME/.gradle::$CONTAINER_HOME_DIR/.gradle"
-    # sbt specific mappings
-        "$HOME/.sbt::$CONTAINER_HOME_DIR/.sbt"
-        "$HOME/.ivy2::$CONTAINER_HOME_DIR/.ivy2"
-    )
+    formDockerRunCacheMounts() {
+        docker_run_data=""
+        while [[ $# -gt 0 ]]; do
+            local_addr="$(echo $VOLUME_BIND_SOURCES | cut -d' ' -f$#)"
+            if [[ -d $local_addr ]];
+            then
+                docker_addr="$(echo $VOLUME_BIND_DESTINATIONS | cut -d' ' -f$#)"
+                docker_run_data="${docker_run_data} --mount type=bind,source='${local_addr}',target='${docker_addr}' "
+            fi
+            shift
+        done
+
+        echo "$docker_run_data"
+    }
 
     set +e
     cache_dir=$(gem environment gemdir 2>/dev/null)
     if [ $? -eq 0 ];
     then
-        VOLUME_BINDS=( "${VOLUME_BINDS[@]}" "${cache_dir}::/var/lib/gems/2.5.0/cache" )
+        VOLUME_BIND_SOURCES=''"$VOLUME_BIND_SOURCES"' '"${cache_dir}"'/cache'
+        VOLUME_BIND_DESTINATIONS=''"$VOLUME_BIND_DESTINATIONS"' /var/lib/gems/2.5.0/cache'
     fi
 
     cache_dir=$(npm root -g 2>/dev/null)
     if [ $? -eq 0 ];
     then
-        VOLUME_BINDS=( "${VOLUME_BINDS[@]}" "${cache_dir}::/usr/lib/node_modules" )
+        VOLUME_BIND_SOURCES=''"$VOLUME_BIND_SOURCES"' '"${cache_dir}"''
+        VOLUME_BIND_DESTINATIONS=''"$VOLUME_BIND_DESTINATIONS"' /usr/lib/node_modules'
     fi
     set -e
 
-    docker_run_data=""
-    for index in "${VOLUME_BINDS[@]}"; do
-        local_addr="${index%%::*}"
-        if [ -d $local_addr ];
-        then
-            docker_addr="${index##*::}"
-            docker_run_data="${docker_run_data} --mount type=bind,source='${local_addr}',target='${docker_addr}' "
-        fi
-    done
+    docker_run_data="$(formDockerRunCacheMounts $VOLUME_BIND_SOURCES)"
 
     # mapping /tmp so that the most recent version of the meterian client is retained on the host machine causing it to be updated the least often
     docker_run_data="${docker_run_data} --mount type=bind,source=/tmp,target=/tmp "
