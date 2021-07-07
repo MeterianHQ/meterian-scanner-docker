@@ -48,7 +48,15 @@ buildFullImage() {
     VERSION_WITH_BUILD=${VERSION}.${BUILD}
 
     echo "~~~~~~ Building the docker container for the Meterian Scanner client"
-    docker build -t ${DOCKER_FULL_IMAGE_NAME} -t ${DOCKER_IMAGE_NAME}:latest --build-arg VERSION=${VERSION_WITH_BUILD} .
+    docker build -t ${DOCKER_FULL_IMAGE_NAME}-tmp -t ${DOCKER_IMAGE_NAME}:latest-tmp --build-arg VERSION=${VERSION_WITH_BUILD} .
+
+    set -x
+    DOCKER_BIN="$(which docker)"
+    echo "~~~~~~ Squashing ${DOCKER_FULL_IMAGE_NAME} & ${DOCKER_IMAGE_NAME}:latest"
+    docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v "${DOCKER_BIN}":"${DOCKER_BIN}" \
+                    meterian/docker-squash:latest -t ${DOCKER_FULL_IMAGE_NAME} ${DOCKER_FULL_IMAGE_NAME}-tmp
+    docker tag ${DOCKER_FULL_IMAGE_NAME} ${DOCKER_IMAGE_NAME}:latest
 }
 
 getVariants() {
