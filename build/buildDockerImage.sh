@@ -50,7 +50,6 @@ buildFullImage() {
     echo "~~~~~~ Building the docker container for the Meterian Scanner client"
     docker build -t ${DOCKER_FULL_IMAGE_NAME}-tmp -t ${DOCKER_IMAGE_NAME}:latest-tmp --build-arg VERSION=${VERSION_WITH_BUILD} .
 
-    set -x
     DOCKER_BIN="$(which docker)"
     echo "~~~~~~ Squashing ${DOCKER_FULL_IMAGE_NAME} & ${DOCKER_IMAGE_NAME}:latest"
     docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock \

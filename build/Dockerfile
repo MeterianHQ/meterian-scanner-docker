@@ -151,7 +151,7 @@ RUN min-apk-add shadow
 RUN wget -q -O /tmp/meterian-cli-www.jar https://www.meterian.com/downloads/meterian-cli.jar
 
 
-### Setup dockerize version stamp
+### Setup dockerized version stamp
 ARG VERSION
 RUN test -n "${VERSION}"
 RUN echo "" >> /root/version.txt
