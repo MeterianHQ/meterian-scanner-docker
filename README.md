@@ -48,6 +48,27 @@ Alternatively you could set the environment variable `METERIAN_WORKDIR` to speci
 ```
 A special version of the script, not using interactive mode, is available for CI/CD use, see [`meterian-docker-ci`](scripts/meterian-docker-ci).
 
+##### Known issues
+In some occasions using the convenience script to scan Swift projects results in the following failure
+```bash
+    Swift scan - running pod 1.10.1 locally...
+    - swift: pod dependencies generation failed!...
+    Execution was unsuccessful: Pod install failed - exit code: 1
+    Please make sure your build is working correctly,
+
+    Uploading dependencies information - 0 found...
+    Done!
+
+    Overall execution was unsuccessful:
+    Pod install failed - exit code: 1
+    Please make sure the project is building correctly
+```
+This is due to [internal issues](https://github.com/segiddins/atomos/issues/7) in `pod`.
+To resolve this while still using the `meterian-docker` script simply comment the following [line](scripts/meterian-docker#L83)
+```bash
+    # docker_run_data="${docker_run_data} --mount type=bind,source=/tmp,target=/tmp "
+```
+
 
 ### Examples of an output after running the docker container on a project
 

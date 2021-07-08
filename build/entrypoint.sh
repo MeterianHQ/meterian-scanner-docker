@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e
 set -o pipefail
@@ -7,6 +7,7 @@ set -o pipefail
 cp /root/meterian.sh /tmp/meterian.sh
 cp /root/version.txt /tmp/version.txt
 export METERIAN_CLI_ARGS=$*
+export ORIGINAL_PATH=$PATH
 
 # retrieve host uid and host gid from /workspace
 if [[ -d "/workspace"  ]]; then
@@ -27,8 +28,8 @@ elif [[ -n "${workspace_gid:-}" ]]; then
 fi
 
 # create the user
-groupadd ${WITH_HGID} meterian
-useradd -g meterian ${WITH_HUID} meterian -d /home/meterian
+groupadd ${WITH_HGID} meterian 2>/dev/null || true
+useradd -g meterian ${WITH_HUID} meterian -d /home/meterian 2>/dev/null || true
 
 # creating home dir if it doesn't exist
 if [[ ! -d "/home/meterian" ]];
@@ -37,13 +38,13 @@ then
 fi
 
 # granting permissions to manipulate client jar 
-chmod 777 /tmp/meterian-cli-www.jar 2>/dev/null || true 
+chmod 777 /tmp/meterian-cli-www.jar 2>/dev/null || true
 
 #changing home dir group and ownership
-chown meterian:meterian /home/meterian
+chown meterian:meterian /home/meterian 2>/dev/null || true
 
 # launch meterian client with the newly created user
-su meterian -c -m /tmp/meterian.sh  2>/dev/null
+su meterian -c -m /tmp/meterian.sh 2>/dev/null
 
 # please do not add any command here as we need to preserve the exit status
 # of the meterian client
