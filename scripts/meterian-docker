@@ -79,7 +79,7 @@ else
         fi
     done
 
-    # mapping /tmp so that the most recent version of the meterian client is retained on the host machine causing it to be updated the least often
+    # mapping /tmp so that the most recent version of the meterian client is retained on the host machine causing it to be updated only when a newer version is detected
     docker_run_data="${docker_run_data} --mount type=bind,source=/tmp,target=/tmp "
     docker_run_data="${docker_run_data} --volume '${HOME}/.netrc':/home/meterian/.netrc"
 
