@@ -36,6 +36,10 @@ RUN python3 -m venv /usr/lib/pythonEnvs/forPoetry \
  && poetry --version
  
 
+# Python UV specifics
+RUN pip install uv
+
+
 ### Setup initial meterian client (it will be updated if required)
 RUN curl -o /tmp/meterian-cli-www.jar -O -J -L https://www.meterian.com/downloads/meterian-cli.jar
 
