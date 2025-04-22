@@ -147,14 +147,27 @@ RUN rustup set profile minimal \
 
 
 # Python install
-ARG REPOS="--repository=http://dl-cdn.alpinelinux.org/alpine/v3.15/community --repository=http://dl-cdn.alpinelinux.org/alpine/v3.15/main --repository=http://dl-cdn.alpinelinux.org/alpine/v3.20/main"
-RUN min-apk-add "musl=1.2.5-r0" "python3>3.12.0" "python3-dev>3.12.0" zeromq-dev=4.3.4-r0 gdal-dev=3.4.3-r0 libxslt-dev=1.1.35-r0 ${REPOS}
+ARG REPOS="--repository=http://dl-cdn.alpinelinux.org/alpine/v3.15/community --repository=http://dl-cdn.alpinelinux.org/alpine/v3.15/main --repository=http://dl-cdn.alpinelinux.org/alpine/v3.21/main"
 RUN min-apk-add g++ openblas-dev=0.3.18-r1 cmake openssl-libs-static openssl-dev ${REPOS}
 
-RUN curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
- && python3 /tmp/get-pip.py --break-system-packages \
- && rm /tmp/get-pip.py
+ENV PATH=${PATH}:/opt/python/3.12.6/bin
+RUN min-apk-add "musl>=1.2.3"
+RUN wget -q -P /tmp/ https://www.python.org/ftp/python/3.12.6/Python-3.12.6.tgz
+RUN tar xvf /tmp/Python-3.12.6.tgz -C /tmp/ && rm /tmp/Python-3.12.6.tgz
+RUN mkdir -p /opt/python/3.12.6
+RUN mkdir python3 && cd python3
+RUN /tmp/Python-3.12.6/configure --prefix=/opt/python/3.12.6
+RUN make -C .
+RUN make install
+RUN ln -s /opt/python/3.12.6/bin/python3 /usr/bin/python
+RUN cd .. && rm -r python3 && rm -r /tmp/Python-3.12.6
+RUN min-apk-add "zeromq-dev>=4.3.4-r0" "gdal-dev>=3.4.3-r0" "libxslt-dev>=1.1.35-r0" ${REPOS}
+RUN min-apk-add g++ openblas-dev=0.3.18-r1 cmake openssl-libs-static openssl-dev ${REPOS}
+
+RUN curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+RUN python3 /tmp/get-pip.py --break-system-packages && rm /tmp/get-pip.py
 COPY ./python-specific/pip/pip.conf /etc/
+RUN pip --version
 
 RUN min-apk-add linux-headers \
  && min-pip3-install --ignore-installed distlib pipenv pipreqs jupyter
@@ -187,6 +200,10 @@ RUN python3 -m venv /usr/lib/pythonEnvs/forPoetry \
  && /usr/lib/pythonEnvs/forPoetry/bin/pip install -U pip poetry \
  && ln -s /usr/lib/pythonEnvs/forPoetry/bin/poetry /usr/bin/poetry \
  && poetry --version
+
+
+# Python UV specifics
+RUN pip install uv
 
 
 # Adding shadow to allow the meterian user creation with uid/gid matching host see https://github.com/MeterianHQ/meterian-scanner-docker/issues/19
