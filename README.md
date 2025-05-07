@@ -52,7 +52,8 @@ A special version of the script, not using interactive mode, is available for CI
 | Option | Description |
 |--------|-------------|
 | --unbound | Avoids binding the standard library cache folders into the docker container |
-| --image:<image tag of choice> | Allows to use a [specific tag](https://hub.docker.com/r/meterian/cli/tags) of the `meterian/cli` image (default tag is: latest)<br>For instance using `--image:latest-python` will instruct the script to use the `latest-python` tag |
+| --image:<image tag of choice> | Allows to use a [specific tag](https://hub.docker.com/r/meterian/cli/tags) of the `meterian/cli` image (default tag is: latest).<br>For instance using `--image:latest-python` will instruct the script to use the `latest-python` tag |
+| --cache:<path to cache directory> | Allows to use an alternative cache directory that will be used to bind with the dependency tools cache directory found within the docker container.<br>For instance using `--cache:/meterian-cache` will cause say a scan of a Java Maven project to cache all the dependencies in `/meterian-cache/.m2/repository` |
 
 ##### Script environment variables
 | environment variables | Description |

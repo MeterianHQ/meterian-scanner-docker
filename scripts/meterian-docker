@@ -6,6 +6,15 @@ if [[ "$*" =~ --debug ]]; then
     set -x
 fi
 
+is_path_exposed_by_macos() {
+    root_dir="$(echo ${1:-} | cut -d/ -f2)"
+    if [[ "Users" == "$root_dir" || "Volumes" == "$root_dir" || "tmp" == "$root_dir" || "private" == "$root_dir" ]]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
 # Set this constant with the tag name corresponding to the image version you wish to use for the scan
 # (for a list of tags visit: https://hub.docker.com/r/meterian/cli/tags)
 VERSION="latest"
@@ -87,39 +96,79 @@ else
 
     CONTAINER_HOME_DIR=/home/meterian
 
+    CUSTOM_CACHE_SET="false"
+    HOST_CACHE_BASE_DIR="$HOME"
+    for arg in $*
+    do
+        flagAndCache="$(expr "$arg" : '\(--cache:.*\)')" || true
+        maybeCache="$(echo "$flagAndCache" | cut -d: -f2)"
+        if [[ "$maybeCache" != "" ]]; then
+            if [[ ! -d "$maybeCache" ]]; then
+                echo "Suggested cache directory '$maybeCache' does not exists, default cache paths will be used instead"
+            else
+                CUSTOM_CACHE_SET="true"
+                HOST_CACHE_BASE_DIR="$maybeCache"
+                echo "Requested usage of directory '$maybeCache' as cache directory"
+            fi
+        fi
+    done
+
     VOLUME_BINDS=(
-        "$HOME/.cache::$CONTAINER_HOME_DIR/.cache"
+        "$HOST_CACHE_BASE_DIR/.cache::$CONTAINER_HOME_DIR/.cache"
     # maven specific mappings
-        "$HOME/.m2::$CONTAINER_HOME_DIR/.m2"
+        "$HOST_CACHE_BASE_DIR/.m2::$CONTAINER_HOME_DIR/.m2"
     # dotnet specific mappings
-        "$HOME/.dotnet::$CONTAINER_HOME_DIR/.dotnet"
-        "$HOME/.nuget::$CONTAINER_HOME_DIR/.nuget"
+        "$HOST_CACHE_BASE_DIR/.dotnet::$CONTAINER_HOME_DIR/.dotnet"
+        "$HOST_CACHE_BASE_DIR/.nuget::$CONTAINER_HOME_DIR/.nuget"
     # gradle specific mappings
-        "$HOME/.gradle::$CONTAINER_HOME_DIR/.gradle"
+        "$HOST_CACHE_BASE_DIR/.gradle::$CONTAINER_HOME_DIR/.gradle"
     # sbt specific mappings
-        "$HOME/.sbt::$CONTAINER_HOME_DIR/.sbt"
-        "$HOME/.ivy2::$CONTAINER_HOME_DIR/.ivy2"
+        "$HOST_CACHE_BASE_DIR/.sbt::$CONTAINER_HOME_DIR/.sbt"
+        "$HOST_CACHE_BASE_DIR/.ivy2::$CONTAINER_HOME_DIR/.ivy2"
     )
 
     set +e
-    cache_dir=$(gem environment gemdir 2>/dev/null)
+    if [[ "$CUSTOM_CACHE_SET" == "true" ]]; then
+        cache_dir="$HOST_CACHE_BASE_DIR/ruby/cache"
+    else
+        cache_dir=$(gem environment gemdir 2>/dev/null)
+    fi
+
     if [ $? -eq 0 ];
     then
         VOLUME_BINDS=( "${VOLUME_BINDS[@]}" "${cache_dir}::/usr/lib/ruby/gems/3.1.0/cache/" )
     fi
 
-    cache_dir=$(npm root -g 2>/dev/null)
+    if [[ "$CUSTOM_CACHE_SET" == "true" ]]; then
+        cache_dir="$HOST_CACHE_BASE_DIR/nodejs/cache"
+    else
+        cache_dir=$(npm root -g 2>/dev/null)
+    fi
+
     if [ $? -eq 0 ];
     then
         VOLUME_BINDS=( "${VOLUME_BINDS[@]}" "${cache_dir}::/usr/lib/node_modules" )
     fi
     set -e
 
+    docker_client_os="docker version --format '{{.Client.Os}}'"
     docker_run_data=""
     for index in "${VOLUME_BINDS[@]}"; do
         local_addr="${index%%::*}"
+
+        if [ "$CUSTOM_CACHE_SET" == "true" ]; then
+            set +e
+            mkdir -p $local_addr 2>/dev/null
+            set -e
+        fi
+
         if [ -d $local_addr ];
         then
+            if [ "docker_client_os" == "darwin" ]; then
+                if [ "$(is_path_exposed_by_macos "$local_addr")" == "false" ]; then
+                    continue
+                fi
+            fi
             docker_addr="${index##*::}"
             docker_run_data="${docker_run_data} --mount type=bind,source='${local_addr}',target='${docker_addr}' "
         fi
