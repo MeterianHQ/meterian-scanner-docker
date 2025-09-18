@@ -110,7 +110,7 @@ RUN min-apk-add php81 php81-phar drupal7 \
 
 # GO install
 ENV GOROOT /usr/lib/go
-RUN min-apk-add go
+RUN min-apk-add go --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 
 
 # NodeJS (npm) install
