@@ -17,9 +17,7 @@ ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT="1"
 RUN min-apk-add bash icu-dev gcc libstdc++ libintl exiftool \
  && wget -q -O /tmp/dotnet-install.sh https://dotnet.microsoft.com/download/dotnet/scripts/v1/dotnet-install.sh \
  && chmod +x /tmp/dotnet-install.sh \
- && mkdir -p /usr/lib/dotnet/; /tmp/dotnet-install.sh --install-dir /usr/lib/dotnet/ --version 8.0.101 \
- && /tmp/dotnet-install.sh --install-dir /usr/lib/dotnet/ --version 10.0.300 \
- && /tmp/dotnet-install.sh --install-dir /usr/lib/dotnet/ --version 6.0.418 \
+ && mkdir -p /usr/lib/dotnet/; /tmp/dotnet-install.sh --install-dir /usr/lib/dotnet/ --version 10.0.300 \
  && ln -s /usr/lib/dotnet/dotnet /usr/bin/dotnet \
  && rm /tmp/dotnet-install.sh
 
