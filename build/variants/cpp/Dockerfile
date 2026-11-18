@@ -15,7 +15,7 @@ RUN min-apk-add openjdk17 --repository=http://dl-cdn.alpinelinux.org/alpine/v3.1
 # Python install
 RUN min-apk-add libstdc++ python3 python3-dev python2 libffi-dev python2-dev zeromq-dev gdal-dev \
  && min-apk-add g++ zlib-dev openblas-dev cmake openssl-libs-static openssl-dev \
- && curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
+ && curl https://bootstrap.pypa.io/pip/3.8/get-pip.py -o /tmp/get-pip.py \
  && python3 /tmp/get-pip.py \
  && rm /tmp/get-pip.py
 
