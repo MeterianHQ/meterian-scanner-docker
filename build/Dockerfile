@@ -11,7 +11,7 @@ WORKDIR /binaries/
 # SCALA bin
 RUN mkdir -p scala sbt \
  && apk --no-cache add curl \
- && curl -sS https://downloads.lightbend.com/scala/${SCALA_VERSION}/scala-${SCALA_VERSION}.tgz -o scala-${SCALA_VERSION}.tgz \
+ && curl -sSL https://github.com/scala/scala/releases/download/v${SCALA_VERSION}/scala-${SCALA_VERSION}.tgz -o scala-${SCALA_VERSION}.tgz \
  && tar xzf scala-${SCALA_VERSION}.tgz -C scala --strip-components=1
 RUN wget -q https://github.com/sbt/sbt/releases/download/v${SBT_VERSION}/sbt-${SBT_VERSION}.tgz
 RUN tar xzf sbt-${SBT_VERSION}.tgz -C sbt --strip-components=1
@@ -45,7 +45,7 @@ ENV ANT_HOME=/usr/share/ant
 ENV PATH=${PATH}:${ANT_HOME}/bin
 ARG ANT_VERSION=1.10.14
 ARG IVY_VERSION=2.5.1
-RUN wget -q -O /tmp/apache-ant-${ANT_VERSION}-bin.tar.gz https://dlcdn.apache.org//ant/binaries/apache-ant-${ANT_VERSION}-bin.tar.gz \
+RUN wget -q -O /tmp/apache-ant-${ANT_VERSION}-bin.tar.gz https://archive.apache.org/dist/ant/binaries/apache-ant-${ANT_VERSION}-bin.tar.gz \
  && mkdir -p /usr/share/ant \
  && tar xzf /tmp/apache-ant-${ANT_VERSION}-bin.tar.gz -C /usr/share/ant --strip-components=1 \
  && wget -q -O ${ANT_HOME}/lib/ivy.jar https://repo1.maven.org/maven2/org/apache/ivy/ivy/${IVY_VERSION}/ivy-${IVY_VERSION}.jar \
@@ -75,7 +75,7 @@ RUN min-apk-add perl-dev wget build-base zlib-dev expat-dev libxml2-dev perl-tes
  && min-apk-add make=4.2.1-r2 --repository=http://dl-cdn.alpinelinux.org/alpine/v3.9/main \
  && min-apk-add ncurses-dev readline-dev perl-net-ssleay openssl gd-dev libjpeg-turbo-dev apr-util-dev=1.6.1-r6 openldap-dev=2.4.58-r0 apache2-dev=2.4.53-r0 mariadb-client --repository=http://dl-cdn.alpinelinux.org/alpine/v3.12/main \
  # mod_perl2 module installation (https://perl.apache.org/download/)
- && wget -q -O /tmp/mod_perl-2.0.12.tar.gz https://dlcdn.apache.org/perl/mod_perl-2.0.12.tar.gz \
+ && wget -q -O /tmp/mod_perl-2.0.12.tar.gz https://archive.apache.org/dist/perl/mod_perl-2.0.12.tar.gz \
  && echo "${MOD_PERL2_SHA}  /tmp/mod_perl-2.0.12.tar.gz" | sha512sum -c - \
  && tar -xvzf /tmp/mod_perl-2.0.12.tar.gz -C /tmp > /dev/null 2>&1 \
  && PREV_DIR=$(pwd); cd /tmp/mod_perl-2.0.12 \
@@ -175,6 +175,31 @@ RUN min-apk-add linux-headers \
 
 # Conan install
 RUN pip3 install conan==1.65.0
+
+
+# vcpkg install
+# A full clone, not a shallow clone: vcpkg reads old port versions from the git
+# history ("builtin-baseline" and "overrides" in vcpkg.json). On Alpine, the
+# bootstrap script downloads the musl binary, and vcpkg must use the system
+# cmake and ninja (VCPKG_FORCE_SYSTEM_BINARIES). The client runs as the
+# "meterian" user with the host uid, and vcpkg writes into its root folder:
+# thus all users can write the root folder, and git accepts it as safe.
+# The Python install gets cmake from Alpine 3.21, and that cmake needs
+# OpenSSL 3.3 or later: thus OpenSSL also comes from Alpine 3.21.
+ARG VCPKG_VERSION=2026.10.16
+ENV VCPKG_ROOT=/opt/vcpkg \
+    VCPKG_FORCE_SYSTEM_BINARIES=1 \
+    VCPKG_DISABLE_METRICS=1
+RUN min-apk-add "libssl3>=3.3" "libcrypto3>=3.3" --repository=http://dl-cdn.alpinelinux.org/alpine/v3.21/main \
+ && cmake --version \
+ && min-apk-add build-base cmake ninja zip unzip curl git tar pkgconf perl linux-headers \
+ && git clone https://github.com/microsoft/vcpkg.git ${VCPKG_ROOT} \
+ && git -C ${VCPKG_ROOT} checkout -q ${VCPKG_VERSION} \
+ && ${VCPKG_ROOT}/bootstrap-vcpkg.sh -disableMetrics \
+ && ln -s ${VCPKG_ROOT}/vcpkg /usr/local/bin/vcpkg \
+ && chmod -R a+rwX ${VCPKG_ROOT} \
+ && git config --system --add safe.directory ${VCPKG_ROOT} \
+ && vcpkg version
 
 
 # R and renv install
