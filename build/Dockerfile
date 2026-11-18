@@ -177,6 +177,31 @@ RUN min-apk-add linux-headers \
 RUN pip3 install conan==1.65.0
 
 
+# vcpkg install
+# A full clone, not a shallow clone: vcpkg reads old port versions from the git
+# history ("builtin-baseline" and "overrides" in vcpkg.json). On Alpine, the
+# bootstrap script downloads the musl binary, and vcpkg must use the system
+# cmake and ninja (VCPKG_FORCE_SYSTEM_BINARIES). The client runs as the
+# "meterian" user with the host uid, and vcpkg writes into its root folder:
+# thus all users can write the root folder, and git accepts it as safe.
+# The Python install gets cmake from Alpine 3.21, and that cmake needs
+# OpenSSL 3.3 or later: thus OpenSSL also comes from Alpine 3.21.
+ARG VCPKG_VERSION=2026.10.16
+ENV VCPKG_ROOT=/opt/vcpkg \
+    VCPKG_FORCE_SYSTEM_BINARIES=1 \
+    VCPKG_DISABLE_METRICS=1
+RUN min-apk-add "libssl3>=3.3" "libcrypto3>=3.3" --repository=http://dl-cdn.alpinelinux.org/alpine/v3.21/main \
+ && cmake --version \
+ && min-apk-add build-base cmake ninja zip unzip curl git tar pkgconf perl linux-headers \
+ && git clone https://github.com/microsoft/vcpkg.git ${VCPKG_ROOT} \
+ && git -C ${VCPKG_ROOT} checkout -q ${VCPKG_VERSION} \
+ && ${VCPKG_ROOT}/bootstrap-vcpkg.sh -disableMetrics \
+ && ln -s ${VCPKG_ROOT}/vcpkg /usr/local/bin/vcpkg \
+ && chmod -R a+rwX ${VCPKG_ROOT} \
+ && git config --system --add safe.directory ${VCPKG_ROOT} \
+ && vcpkg version
+
+
 # R and renv install
 RUN min-apk-add R R-dev \
  && R --slave -e "install.packages('renv', repos='http://cran.r-project.org')" \
